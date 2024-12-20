@@ -1,0 +1,55 @@
+// ==UserScript==
+// @name         Leitstellenspiel: Patienten automatisch ins beste Krankenhaus senden
+// @namespace    https://leitstellenspiel.de/
+// @version      1.0
+// @description  Automatisches Senden von Patienten ins beste Krankenhaus basierend auf Kriterien wie Entfernung und Fachrichtung
+// @author       Dein Name
+// @match        https://www.leitstellenspiel.de/*
+// @grant        none
+// ==/UserScript==
+
+(function() {
+    'use strict';
+
+    // Funktion, um Patienten zu senden
+    function sendPatients() {
+        // Suche nach Einsätzen mit transportfähigen Patienten
+        const missionsWithPatients = document.querySelectorAll('.mission_patient_transport_button');
+
+        missionsWithPatients.forEach(button => {
+            // Automatischer Klick auf den Button, um das Krankenhausmenü zu öffnen
+            button.click();
+
+            setTimeout(() => {
+                // Suche nach dem besten Krankenhaus im Menü
+                const hospitalList = document.querySelectorAll('#hospitals_table tbody tr');
+                let bestHospital = null;
+
+                hospitalList.forEach(hospital => {
+                    const distance = parseFloat(hospital.querySelector('.hospital_distance').textContent.trim().replace(' km', ''));
+                    const bedsAvailable = parseInt(hospital.querySelector('.hospital_free_beds').textContent.trim());
+
+                    if (bedsAvailable > 0 && (!bestHospital || distance < parseFloat(bestHospital.distance))) {
+                        bestHospital = {
+                            element: hospital,
+                            distance: distance
+                        };
+                    }
+                });
+
+                if (bestHospital) {
+                    // Wähle das beste Krankenhaus aus
+                    bestHospital.element.querySelector('.btn-success').click();
+                    console.log(`Patient ins beste Krankenhaus geschickt: ${bestHospital.distance} km entfernt`);
+                } else {
+                    console.log('Kein Krankenhaus mit freien Betten gefunden.');
+                }
+            }, 1000); // 1 Sekunde Verzögerung, um sicherzustellen, dass das Menü geladen ist
+        });
+    }
+
+    // Intervall, um regelmäßig nach neuen Patienten zu suchen
+    setInterval(() => {
+        sendPatients();
+    }, 10000); // Alle 10 Sekunden
+})();
